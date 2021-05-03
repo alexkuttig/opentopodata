@@ -431,3 +431,61 @@ def get_elevation(dataset_name, methods=["GET", "OPTIONS", "HEAD"]):
         app.logger.error(e)
         msg = "Unhandled server error, see server logs for details."
         return jsonify({"status": "SERVER_ERROR", "error": msg}), 500
+
+
+@app.route("/v1/bunch/<dataset_name>", methods=["POST"])
+def get_elevation_bunch(dataset_name):
+    """Calculate the elevation for the given locations.
+
+    Args:
+        dataset_name: String matching a dataset in the config file.
+
+    Json Body:
+        inerpolation: Interpolation mode.
+        nodata_value: Value which should be returned if no data is found for a location.
+        locations: String with locations
+
+    Returns:
+        Response.
+    """
+
+    try:
+        # Parse inputs.
+        interpolation = _parse_interpolation(request.json.get("interpolation"))
+        nodata_value = _parse_nodata_value(request.json.get("nodata_value"))
+        lats, lons = _parse_locations(
+            request.json["locations"], _load_config()["max_locations_per_request"]
+        )
+
+        # Get the z values.
+        datasets = _get_datasets(dataset_name)
+        elevations, dataset_names = backend.get_elevation(
+            lats, lons, datasets, interpolation, nodata_value
+        )
+
+        # Build response.
+        results = []
+        for z, dataset_name, lat, lon in zip(elevations, dataset_names, lats, lons):
+            results.append(
+                {
+                    "elevation": z,
+                    "dataset": dataset_name,
+                    "location": {"lat": lat, "lng": lon},
+                }
+            )
+        data = {"status": "OK", "results": results}
+        return jsonify(data)
+
+    except (ClientError, backend.InputError) as e:
+        return jsonify({"status": "INVALID_REQUEST", "error": str(e)}), 400
+    except config.ConfigError as e:
+        return (
+            jsonify({"status": "SERVER_ERROR", "error": "Config Error: {}".format(e)}),
+            500,
+        )
+    except Exception as e:
+        if app.debug:
+            raise e
+        app.logger.error(e)
+        msg = "Unhandled server error, see server logs for details."
+        return jsonify({"status": "SERVER_ERROR", "error": msg}), 500
