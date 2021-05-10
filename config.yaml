@@ -3,10 +3,10 @@ access_control_allow_origin: '*'
 
 datasets:
 - name: eudem25m
-  path: /mnt/data/opentopodata/eudem-vrt/
+  path: data/eudem-vrt/
 
 - name: mapzen
-  path: /mnt/data/opentopodata/mapzen/
+  path: data/mapzen/
 
 - name: eu-global
   child_datasets:
