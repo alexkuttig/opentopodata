@@ -1,0 +1,14 @@
+max_locations_per_request: 10000
+access_control_allow_origin: '*'
+
+datasets:
+- name: eudem25m
+  path: /mnt/data/opentopodata/eudem-vrt/
+
+- name: mapzen
+  path: /mnt/data/opentopodata/mapzen/
+
+- name: eu-global
+  child_datasets:
+    - eudem25m
+    - mapzen
